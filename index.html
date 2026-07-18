@@ -71,8 +71,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .card-actions{position:absolute;top:8px;right:8px;display:flex;gap:4px;opacity:0;transition:.2s;z-index:10}
 .skin-card:hover .card-actions{opacity:1}
 .skin-card.selectable .card-actions{display:none!important}
-.card-btn{width:29px;height:29px;border-radius:7px;border:1px solid rgba(255,255,255,.1);cursor:pointer;font-size:.72rem;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px);transition:.2s}
+.card-btn{width:25px;height:25px;border-radius:6px;border:1px solid rgba(255,255,255,.1);cursor:pointer;font-size:.66rem;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px);transition:.2s}
 .card-btn-edit{background:rgba(255,255,255,.12);color:#fff}
+.card-btn-move{background:rgba(255,255,255,.08);color:var(--text-dim);font-size:.62rem}
 .card-btn-delete{background:rgba(192,57,43,.4);color:#ffb0b0}
 .card-btn:hover{transform:scale(1.12)}
 
@@ -491,6 +492,8 @@ function renderRosterList(type) {
             ${s.weight&&s.weight!==5?`<div class="skin-weight-tag">🎲 ×${s.weight}</div>`:''}
           </div>
           <div class="card-actions" onclick="event.stopPropagation()">
+            <button class="card-btn card-btn-move" onclick="moveSkin('${type}','${esc(c.id)}','${esc(s.id)}',-1)" title="Déplacer avant">◀</button>
+            <button class="card-btn card-btn-move" onclick="moveSkin('${type}','${esc(c.id)}','${esc(s.id)}',1)" title="Déplacer après">▶</button>
             <button class="card-btn card-btn-edit" onclick="openEditSkin('${type}','${esc(c.id)}','${esc(s.id)}')">✏</button>
             <button class="card-btn card-btn-delete" onclick="deleteSkinItem('${type}','${esc(c.id)}','${esc(s.id)}')">🗑</button>
           </div>
@@ -599,6 +602,17 @@ function deleteSkinItem(type, charId, skinId) {
   if(char) char.skins = char.skins.filter(s=>s.id!==skinId);
   saveData(db); showToast('Skin supprimé ✓'); refresh();
 }
+function moveSkin(type, charId, skinId, dir) {
+  const db = loadData();
+  const list = type==='survivor'?db.survivors:db.killers;
+  const char = list.find(c=>c.id===charId);
+  if(!char) return;
+  const idx = char.skins.findIndex(s=>s.id===skinId);
+  const newIdx = idx+dir;
+  if(idx===-1||newIdx<0||newIdx>=char.skins.length) return;
+  [char.skins[idx], char.skins[newIdx]] = [char.skins[newIdx], char.skins[idx]];
+  saveData(db); refresh();
+}
 function openEditSkin(type, charId, skinId) {
   const db = loadData();
   const list = type==='survivor'?db.survivors:db.killers;
@@ -682,6 +696,8 @@ function renderPPGrid() {
         ${p.weight&&p.weight!==5?`<div class="skin-weight-tag">🎲 ×${p.weight}</div>`:''}
       </div>
       <div class="card-actions" onclick="event.stopPropagation()">
+        <button class="card-btn card-btn-move" onclick="movePP('${esc(p.id)}',-1)" title="Déplacer avant">◀</button>
+        <button class="card-btn card-btn-move" onclick="movePP('${esc(p.id)}',1)" title="Déplacer après">▶</button>
         <button class="card-btn card-btn-edit" onclick="openEditPP('${esc(p.id)}')">✏</button>
         <button class="card-btn card-btn-delete" onclick="deletePP('${esc(p.id)}')">🗑</button>
       </div>
@@ -707,6 +723,14 @@ function deletePP(id) {
   const db = loadData();
   db.profilePics = db.profilePics.filter(p=>p.id!==id);
   saveData(db); showToast('Photo de profil supprimée ✓'); refresh();
+}
+function movePP(id, dir) {
+  const db = loadData();
+  const idx = db.profilePics.findIndex(p=>p.id===id);
+  const newIdx = idx+dir;
+  if(idx===-1||newIdx<0||newIdx>=db.profilePics.length) return;
+  [db.profilePics[idx], db.profilePics[newIdx]] = [db.profilePics[newIdx], db.profilePics[idx]];
+  saveData(db); refresh();
 }
 function openEditPP(id) {
   const db = loadData();
