@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DBD Vault – Ma Collection</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#07070a; --bg2:#0d0d12; --bg3:#121218; --bg4:#181820; --bg5:#1e1e28;
+  --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.12);
+  --text:#eeeef2; --text-muted:#5a5a68; --text-dim:#9090a0;
+  --killer:#c0392b; --survivor:#2f8fa8; --epic:#9b30ff;
+  --r:8px; --rl:14px; --rx:20px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Exo 2',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 40% at 15% 0%,rgba(192,57,43,0.05),transparent 60%),radial-gradient(ellipse 60% 40% at 90% 100%,rgba(47,143,168,0.05),transparent 60%);pointer-events:none;z-index:0}
+#app{display:flex;min-height:100vh;position:relative;z-index:1}
+
+/* SIDEBAR */
+#sidebar{width:225px;min-height:100vh;background:linear-gradient(180deg,var(--bg2),var(--bg));border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:100}
+.sidebar-logo{padding:26px 22px 20px;border-bottom:1px solid var(--border)}
+.sidebar-logo h1{font-family:'Rajdhani',sans-serif;font-size:1.45rem;font-weight:700;letter-spacing:.14em;background:linear-gradient(135deg,#fff,#a05050);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-logo span{font-size:.58rem;letter-spacing:.24em;color:var(--text-muted);text-transform:uppercase}
+.sidebar-section{padding:16px 18px 5px;font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;color:var(--text-muted);font-weight:600}
+.sidebar-nav{padding:0 10px}
+.nav-item{display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:var(--r);cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:.94rem;font-weight:500;letter-spacing:.05em;color:var(--text-dim);transition:.22s;margin-bottom:2px;border:1px solid transparent;user-select:none}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:.22s;background:#444450}
+.nav-item[data-page=survivors] .nav-dot{background:var(--survivor)}
+.nav-item[data-page=killers] .nav-dot{background:var(--killer)}
+.nav-item[data-page=random] .nav-dot{background:linear-gradient(135deg,var(--killer),var(--survivor))}
+.nav-item.active{color:var(--text);background:var(--bg3)}
+.nav-item.active[data-page=survivors]{border-color:rgba(47,143,168,.25);background:linear-gradient(90deg,rgba(47,143,168,.08),transparent)}
+.nav-item.active[data-page=killers]{border-color:rgba(192,57,43,.25);background:linear-gradient(90deg,rgba(192,57,43,.08),transparent)}
+.nav-item.active[data-page=random]{border-color:rgba(155,48,255,.25);background:linear-gradient(90deg,rgba(155,48,255,.08),transparent)}
+.nav-item.active[data-page=survivors] .nav-dot{box-shadow:0 0 10px var(--survivor)}
+.nav-item.active[data-page=killers] .nav-dot{box-shadow:0 0 10px var(--killer)}
+.sidebar-bottom{margin-top:auto;padding:14px 10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
+
+/* MAIN */
+#main{margin-left:225px;flex:1;padding:34px 38px;min-height:100vh}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px;padding-bottom:18px;border-bottom:1px solid var(--border);position:relative;flex-wrap:wrap;gap:12px}
+.page-header::after{content:'';position:absolute;bottom:-1px;left:0;width:110px;height:1px}
+.page-header.killer-page::after{background:linear-gradient(90deg,var(--killer),transparent)}
+.page-header.survivor-page::after{background:linear-gradient(90deg,var(--survivor),transparent)}
+.page-title{font-family:'Rajdhani',sans-serif;font-size:2.1rem;font-weight:700;letter-spacing:.1em;line-height:1}
+.killer-accent{color:var(--killer);text-shadow:0 0 40px rgba(192,57,43,.45)}
+.survivor-accent{color:var(--survivor);text-shadow:0 0 40px rgba(47,143,168,.45)}
+.count-badge{font-size:.72rem;padding:5px 12px;border-radius:20px;background:var(--bg3);border:1px solid var(--border2);color:var(--text-dim);font-family:'Rajdhani',sans-serif;letter-spacing:.1em}
+
+/* GRID & CARDS */
+.skins-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.skin-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;cursor:pointer;transition:transform .25s,box-shadow .25s,border-color .25s;position:relative}
+.skin-card:hover{transform:translateY(-5px)}
+.skin-card:hover{box-shadow:0 12px 34px rgba(0,0,0,.4)}
+.skin-img-wrap{aspect-ratio:3/4;overflow:hidden;background:linear-gradient(135deg,var(--bg3),var(--bg4));position:relative}
+.skin-img-wrap img{width:100%;height:100%;object-fit:cover;transition:transform .5s;display:block}
+.skin-card:hover .skin-img-wrap img{transform:scale(1.07)}
+.skin-img-wrap .no-img{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2.3rem;color:var(--bg5)}
+.skin-img-wrap::after{content:'';position:absolute;bottom:0;left:0;right:0;height:45%;background:linear-gradient(0deg,rgba(7,7,10,.85),transparent);pointer-events:none}
+.rarity-bar{height:2px;width:100%}
+.skin-info{padding:9px 11px 11px}
+.skin-name{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.9rem;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.skin-weight-tag{font-size:.6rem;color:var(--epic);margin-top:3px;font-weight:600}
+.card-actions{position:absolute;top:8px;right:8px;display:flex;gap:4px;opacity:0;transition:.2s;z-index:10}
+.skin-card:hover .card-actions{opacity:1}
+.skin-card.selectable .card-actions{display:none!important}
+.card-btn{width:29px;height:29px;border-radius:7px;border:1px solid rgba(255,255,255,.1);cursor:pointer;font-size:.72rem;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px);transition:.2s}
+.card-btn-edit{background:rgba(255,255,255,.12);color:#fff}
+.card-btn-delete{background:rgba(192,57,43,.4);color:#ffb0b0}
+.card-btn:hover{transform:scale(1.12)}
+
+/* TABS */
+.tabs{display:flex;gap:3px;margin-bottom:22px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px;width:fit-content}
+.tab{padding:8px 22px;border-radius:calc(var(--r) - 2px);cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:.06em;font-size:.9rem;color:var(--text-muted);transition:.2s;border:none;background:none}
+.tab.active{background:var(--bg5);color:var(--text);box-shadow:0 1px 8px rgba(0,0,0,.3)}
+.tab:hover:not(.active){color:var(--text-dim)}
+
+/* CHARACTER SECTIONS */
+.champion-section{margin-bottom:32px}
+.champion-header{display:flex;align-items:center;gap:14px;margin-bottom:14px;padding:14px 18px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl)}
+.champion-avatar{width:50px;height:50px;border-radius:50%;object-fit:cover;border:2px solid var(--border2);flex-shrink:0}
+.champion-avatar.no-img{background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:var(--text-muted)}
+.champion-name{font-family:'Rajdhani',sans-serif;font-size:1.08rem;font-weight:700;letter-spacing:.05em}
+.champion-skin-count{color:var(--text-muted);font-size:.74rem;margin-top:2px}
+.champion-weight-tag{color:var(--epic);font-size:.68rem;margin-top:2px;font-weight:600}
+.champion-actions{margin-left:auto;display:flex;gap:6px}
+.section-divider{border:none;border-top:1px solid var(--border);margin:0 0 32px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.86);backdrop-filter:blur(10px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rx);width:100%;max-width:560px;max-height:92vh;overflow-y:auto;transform:scale(.93) translateY(20px);transition:transform .25s;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.modal-overlay.open .modal{transform:scale(1) translateY(0)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 26px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2);z-index:2}
+.modal-title{font-family:'Rajdhani',sans-serif;font-size:1.35rem;font-weight:700;letter-spacing:.06em}
+.modal-close{width:32px;height:32px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text-dim);cursor:pointer;font-size:1.05rem;transition:.2s;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:var(--bg5);color:var(--text)}
+.modal-body{padding:22px}
+
+/* FORMS */
+.form-section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:24px 26px;margin-bottom:18px}
+.form-section-title{font-family:'Rajdhani',sans-serif;font-size:1.02rem;font-weight:700;letter-spacing:.06em;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.form-row.single{grid-template-columns:1fr}
+.form-group{display:flex;flex-direction:column;gap:6px}
+label{font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;color:var(--text-muted);font-weight:600}
+input[type=text],input[type=url],select{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:10px 13px;color:var(--text);font-family:'Exo 2',sans-serif;font-size:.9rem;outline:none;transition:.2s;width:100%}
+input:focus,select:focus{border-color:rgba(255,255,255,.3);box-shadow:0 0 0 3px rgba(255,255,255,.04)}
+select option{background:var(--bg3)}
+.img-url-wrap{display:flex;flex-direction:column;gap:8px}
+.img-url-preview{width:100%;height:130px;object-fit:contain;border-radius:var(--r);background:var(--bg3);border:1px solid var(--border);display:none}
+.img-url-preview.show{display:block}
+
+/* WEIGHT WIDGET */
+.weight-wrap{display:flex;align-items:center;gap:8px;margin-top:6px}
+.weight-label{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);font-weight:600;white-space:nowrap}
+.weight-slider{flex:1;height:4px;accent-color:var(--epic);cursor:pointer}
+.weight-value{font-size:.8rem;font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--epic);min-width:20px;text-align:center}
+.weight-bar-row{display:flex;gap:3px;align-items:center;margin-top:2px}
+.weight-pip{width:8px;height:8px;border-radius:2px;background:var(--bg4);border:1px solid var(--border);transition:.15s;flex-shrink:0}
+.weight-pip.on{background:var(--epic);border-color:var(--epic)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 22px;border-radius:var(--r);border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:.92rem;letter-spacing:.06em;transition:.2s;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.18);color:#fff}
+.btn-primary:hover{background:linear-gradient(135deg,rgba(255,255,255,.2),rgba(255,255,255,.1));box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.btn-danger{background:rgba(192,57,43,.2);border:1px solid rgba(192,57,43,.4);color:#ff8a8a}
+.btn-danger:hover{background:rgba(192,57,43,.32)}
+.btn-sm{padding:7px 14px;font-size:.8rem}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text-muted)}
+.btn-ghost:hover{background:var(--bg3);color:var(--text)}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:20px}
+
+/* FILTER */
+.filter-bar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px}
+.filter-btn{padding:5px 13px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:.72rem;cursor:pointer;transition:.2s;font-family:'Exo 2',sans-serif}
+.filter-btn:hover{background:var(--bg3);color:var(--text-dim);border-color:var(--border2)}
+.filter-btn.active{background:var(--bg4);color:var(--text);border-color:var(--border2)}
+
+/* TOAST */
+#toast{position:fixed;bottom:26px;right:26px;background:var(--bg4);border:1px solid var(--border2);border-radius:var(--r);padding:13px 20px;font-size:.87rem;color:var(--text);z-index:9999;transform:translateY(80px);opacity:0;transition:all .3s;max-width:300px;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.success{border-color:rgba(0,192,96,.4)}
+#toast.error{border-color:rgba(192,57,43,.4)}
+
+/* EMPTY */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 20px;text-align:center;color:var(--text-muted);gap:14px;grid-column:1/-1}
+.empty-state .icon{font-size:3.2rem;opacity:.5}
+.empty-state p{font-size:.88rem;line-height:1.6}
+
+/* HOME */
+.home-stats{display:flex;gap:16px;margin-bottom:26px;flex-wrap:wrap}
+.stat-block{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:18px 22px;flex:1;min-width:110px}
+.stat-number{font-family:'Rajdhani',sans-serif;font-size:2.1rem;font-weight:700;line-height:1}
+.stat-label{font-size:.66rem;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;margin-top:4px}
+.home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.game-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rx);padding:24px 20px;cursor:pointer;transition:transform .25s,box-shadow .25s,border-color .25s;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden}
+.game-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px}
+.game-card:hover{transform:translateY(-5px)}
+.game-card.killer{border-color:rgba(192,57,43,.2)}.game-card.killer::before{background:linear-gradient(90deg,transparent,var(--killer),transparent);opacity:.5}
+.game-card.killer:hover{box-shadow:0 10px 36px rgba(192,57,43,.15);border-color:rgba(192,57,43,.35)}
+.game-card.killer .game-card-name{color:var(--killer)}
+.game-card.survivor{border-color:rgba(47,143,168,.2)}.game-card.survivor::before{background:linear-gradient(90deg,transparent,var(--survivor),transparent);opacity:.5}
+.game-card.survivor:hover{box-shadow:0 10px 36px rgba(47,143,168,.15);border-color:rgba(47,143,168,.35)}
+.game-card.survivor .game-card-name{color:var(--survivor)}
+.game-card.rand{border-color:rgba(155,48,255,.2)}.game-card.rand::before{background:linear-gradient(90deg,transparent,var(--epic),transparent);opacity:.5}
+.game-card.rand:hover{box-shadow:0 10px 36px rgba(155,48,255,.15);border-color:rgba(155,48,255,.35)}
+.game-card.rand .game-card-name{background:linear-gradient(135deg,var(--epic),var(--survivor));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.game-card-icon{font-size:1.8rem}
+.game-card-name{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.15rem;letter-spacing:.04em}
+.game-card-count{color:var(--text-muted);font-size:.76rem}
+
+/* RANDOMIZER */
+.rand-page{max-width:640px}
+.rand-step{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:20px 24px;margin-bottom:16px}
+.rand-step-title{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.07em;color:var(--text-dim);margin-bottom:14px}
+.rand-btn{font-size:1.05rem;padding:14px 34px;border-radius:var(--rl);background:linear-gradient(135deg,rgba(192,57,43,.25),rgba(47,143,168,.2));border:1px solid rgba(192,57,43,.4);color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:.08em;cursor:pointer;transition:.25s;display:flex;align-items:center;gap:10px}
+.rand-btn:hover{box-shadow:0 8px 30px rgba(192,57,43,.25)}
+@keyframes spinBounce{0%{transform:scale(1) rotate(0)}40%{transform:scale(1.15) rotate(180deg)}100%{transform:scale(1) rotate(360deg)}}
+.rand-btn.spinning{animation:spinBounce .6s ease}
+.rand-results{margin-top:10px}
+.rand-result-card{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rx);overflow:hidden;position:relative;transition:.25s;max-width:280px}
+.rand-result-img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;background:var(--bg3)}
+.rand-result-img.no-img-big{display:flex;align-items:center;justify-content:center;font-size:3.6rem;background:linear-gradient(135deg,var(--bg3),var(--bg4))}
+.rand-result-info{padding:14px 16px 16px;background:linear-gradient(0deg,var(--bg2),transparent)}
+.rand-result-cat{font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-muted);font-weight:600;margin-bottom:4px}
+.rand-result-name{font-family:'Rajdhani',sans-serif;font-size:1.12rem;font-weight:700;letter-spacing:.04em}
+
+/* SELECT MODE */
+.select-mode-bar{display:flex;align-items:center;gap:12px;padding:12px 18px;background:var(--bg2);border:1px solid rgba(192,57,43,.3);border-radius:var(--rl);margin-bottom:18px;flex-wrap:wrap}
+.skin-card.selectable{cursor:pointer}
+.skin-card.selected{outline:2px solid var(--killer);outline-offset:2px;box-shadow:0 0 20px rgba(192,57,43,.25)}
+.skin-card.selected::after{content:'✓';position:absolute;top:8px;left:8px;width:22px;height:22px;background:var(--killer);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;color:#fff;font-weight:700;z-index:20}
+
+/* LIGHTBOX */
+.lightbox-overlay{visibility:hidden;opacity:0;position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(14px);z-index:9999;cursor:zoom-out;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:24px;transition:opacity .25s,visibility .25s}
+.lightbox-overlay.open{visibility:visible;opacity:1}
+#lightbox-img{max-width:min(480px,88vw);max-height:80vh;object-fit:contain;border-radius:14px;box-shadow:0 40px 100px rgba(0,0,0,.9);border:1px solid rgba(255,255,255,.12);display:block;transform:scale(.92);transition:transform .25s cubic-bezier(0.4,0,0.2,1)}
+.lightbox-overlay.open #lightbox-img{transform:scale(1)}
+.lightbox-name{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:600;letter-spacing:.07em;color:rgba(255,255,255,.9);background:rgba(0,0,0,.5);padding:6px 18px;border-radius:20px;border:1px solid rgba(255,255,255,.1);white-space:nowrap}
+
+@media (max-width:760px){
+  #sidebar{position:relative;width:100%;min-height:auto;flex-direction:row;flex-wrap:wrap;padding:10px}
+  #main{margin-left:0;padding:22px 16px}
+  .sidebar-nav{display:flex;flex-wrap:wrap;padding:4px}
+  .sidebar-bottom{margin-top:0}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="sidebar-logo">
+      <h1>DBD VAULT</h1>
+      <span>Dead by Daylight · Bloody</span>
+    </div>
+    <div class="sidebar-section">Collection</div>
+    <nav class="sidebar-nav">
+      <div class="nav-item" data-page="home" onclick="navigate('home')"><div class="nav-dot"></div>Accueil</div>
+      <div class="nav-item" data-page="survivors" onclick="navigate('survivors')"><div class="nav-dot"></div>Survivants</div>
+      <div class="nav-item" data-page="killers" onclick="navigate('killers')"><div class="nav-dot"></div>Tueurs</div>
+    </nav>
+    <div class="sidebar-section">Outils</div>
+    <nav class="sidebar-nav">
+      <div class="nav-item" data-page="random" onclick="navigate('random')"><div class="nav-dot"></div>🎲 Randomizer</div>
+      <div class="nav-item" data-page="add" onclick="navigate('add')"><div class="nav-dot"></div>➕ Ajouter</div>
+    </nav>
+    <div class="sidebar-bottom">
+      <button class="btn btn-ghost btn-sm" onclick="exportData()">⬇ Exporter</button>
+      <label class="btn btn-ghost btn-sm" style="cursor:pointer;justify-content:center;">⬆ Importer<input type="file" accept=".json" style="display:none" onchange="handleImport(event)"></label>
+    </div>
+  </aside>
+  <main id="main"><div id="page-content"></div></main>
+</div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOnBg(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Détail</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<div class="lightbox-overlay" id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src="" alt="" style="display:none">
+  <div class="lightbox-name" id="lightbox-name"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════════════════
+const DB_KEY = 'dbdvault_data';
+const DEFAULT_DATA = { survivors: [], killers: [] };
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(DB_KEY);
+    if (!raw) return JSON.parse(JSON.stringify(DEFAULT_DATA));
+    const saved = JSON.parse(raw);
+    if(!saved.survivors) saved.survivors=[];
+    if(!saved.killers) saved.killers=[];
+    return saved;
+  } catch(e) { return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
+}
+function saveData(d) { localStorage.setItem(DB_KEY, JSON.stringify(d)); }
+function generateId(p) { return p+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+
+function exportData() {
+  const d = loadData();
+  const blob = new Blob([JSON.stringify(d,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url;
+  a.download=`dbdvault_${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+}
+function importData(file) {
+  return new Promise((res,rej)=>{
+    const r = new FileReader();
+    r.onload = e => { try { const d=JSON.parse(e.target.result); if(!('survivors' in d)||!('killers' in d)) throw new Error('Format invalide (pas un export DBD Vault)'); saveData(d); res(d); } catch(err){rej(err instanceof Error?err:new Error('JSON invalide'));} };
+    r.readAsText(file);
+  });
+}
+async function handleImport(e) {
+  const f=e.target.files[0]; if(!f) return;
+  try { await importData(f); showToast('Import réussi ✓'); refresh(); }
+  catch(err) { showToast('Erreur : '+err.message,'error'); }
+  e.target.value='';
+}
+
+// ═══════════════════════════════════════════════════════
+//  APP / NAVIGATION
+// ═══════════════════════════════════════════════════════
+let currentPage = 'home';
+
+function navigate(page) {
+  currentPage = page;
+  _exitSelectMode(true);
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active', el.dataset.page===page));
+  const c = document.getElementById('page-content');
+  switch(page) {
+    case 'home':      c.innerHTML = renderHome(); break;
+    case 'survivors': c.innerHTML = renderRoster('survivor'); break;
+    case 'killers':   c.innerHTML = renderRoster('killer'); break;
+    case 'random':    c.innerHTML = renderRandom(); break;
+    case 'add':       c.innerHTML = renderAdd(); break;
+    default: c.innerHTML='<p>404</p>';
+  }
+}
+function refresh() { navigate(currentPage); }
+
+// Modal
+function openModal(title, body) {
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-body').innerHTML=body;
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); document.body.style.overflow=''; }
+function closeModalOnBg(e) { if(e.target===document.getElementById('modal-overlay')) closeModal(); }
+
+// Toast
+let _tt;
+function showToast(msg,type='success') {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`show ${type}`;
+  clearTimeout(_tt); _tt=setTimeout(()=>{t.className='';},3000);
+}
+
+// Lightbox
+function openLightbox(src, name) {
+  if(!src) return;
+  const lb = document.getElementById('lightbox');
+  const img = document.getElementById('lightbox-img');
+  const nm = document.getElementById('lightbox-name');
+  img.src = src; img.style.display = 'block';
+  nm.textContent = name || '';
+  lb.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+  setTimeout(() => { document.getElementById('lightbox-img').src = ''; }, 300);
+}
+
+// Utils
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function previewUrl(inputId, previewId) {
+  const url = document.getElementById(inputId)?.value.trim();
+  const img = document.getElementById(previewId);
+  if(!img) return;
+  if(url) { img.src=url; img.classList.add('show'); } else { img.classList.remove('show'); }
+}
+// Poids 1-10 : 1 = très rare, 5 = normal, 10 = très fréquent
+function randWeighted(arr) {
+  if(!arr || !arr.length) return null;
+  const total = arr.reduce((s,x) => s + (x.weight||5), 0);
+  let r = Math.random() * total;
+  for(const item of arr) {
+    r -= (item.weight||5);
+    if(r <= 0) return item;
+  }
+  return arr[arr.length-1];
+}
+
+// ── Widget probabilité (utilisé UNE seule fois par formulaire) ──
+function weightWidget(fieldId, defaultVal=5) {
+  return `<div class="form-group">
+    <label>🎲 Probabilité dans le randomizer</label>
+    <div class="weight-wrap">
+      <span class="weight-label">Rare</span>
+      <input type="range" class="weight-slider" id="${fieldId}" min="1" max="10" value="${defaultVal}"
+        oninput="updateWeightPips('${fieldId}')">
+      <span class="weight-label">Fréquent</span>
+      <span class="weight-value" id="${fieldId}-val">${defaultVal}</span>
+    </div>
+    <div class="weight-bar-row" id="${fieldId}-pips">
+      ${Array.from({length:10},(_,i)=>`<div class="weight-pip ${i<defaultVal?'on':''}" id="${fieldId}-pip-${i+1}"></div>`).join('')}
+    </div>
+    <div style="font-size:.67rem;color:var(--text-muted);margin-top:4px">1 = très rare · 5 = normal · 10 = très fréquent</div>
+  </div>`;
+}
+function updateWeightPips(fieldId) {
+  const val = parseInt(document.getElementById(fieldId)?.value||5);
+  const valEl = document.getElementById(fieldId+'-val');
+  if(valEl) { valEl.textContent=val; }
+  for(let i=1;i<=10;i++) {
+    const pip = document.getElementById(fieldId+'-pip-'+i);
+    if(pip) pip.classList.toggle('on', i<=val);
+  }
+}
+function getWeight(fieldId) { return parseInt(document.getElementById(fieldId)?.value||5); }
+
+// ═══════════════════════════════════════════════════════
+//  HOME
+// ═══════════════════════════════════════════════════════
+function renderHome() {
+  const db=loadData();
+  const survSkins = db.survivors.reduce((a,c)=>a+c.skins.length,0);
+  const killSkins = db.killers.reduce((a,c)=>a+c.skins.length,0);
+  const total = survSkins+killSkins;
+  return `
+    <div class="page-header"><div><div class="page-title" style="color:var(--text)">MA COLLECTION</div><div style="color:var(--text-muted);font-size:.8rem;margin-top:4px;letter-spacing:.1em">DBD VAULT · BLOODY</div></div><button class="btn btn-primary" onclick="navigate('add')">➕ Ajouter</button></div>
+    <div class="home-stats">
+      <div class="stat-block"><div class="stat-number">${total}</div><div class="stat-label">Skins total</div></div>
+      <div class="stat-block"><div class="stat-number">${db.survivors.length}</div><div class="stat-label">Survivants</div></div>
+      <div class="stat-block"><div class="stat-number">${db.killers.length}</div><div class="stat-label">Tueurs</div></div>
+    </div>
+    <div class="home-grid">
+      <div class="game-card survivor" onclick="navigate('survivors')">
+        <div class="game-card-icon">🏃</div>
+        <div class="game-card-name">Survivants</div>
+        <div class="game-card-count">${survSkins} skin${survSkins!==1?'s':''}</div>
+      </div>
+      <div class="game-card killer" onclick="navigate('killers')">
+        <div class="game-card-icon">🔪</div>
+        <div class="game-card-name">Tueurs</div>
+        <div class="game-card-count">${killSkins} skin${killSkins!==1?'s':''}</div>
+      </div>
+      <div class="game-card rand" onclick="navigate('random')">
+        <div class="game-card-icon">🎲</div>
+        <div class="game-card-name">Randomizer</div>
+        <div class="game-card-count">Choix aléatoire</div>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  ROSTER (Survivants / Tueurs)
+// ═══════════════════════════════════════════════════════
+function renderRoster(type) {
+  const db=loadData();
+  const list = type==='survivor'?db.survivors:db.killers;
+  const label = type==='survivor'?'Survivants':'Tueurs';
+  const accent = type==='survivor'?'survivor':'killer';
+  return `
+    <div class="page-header ${accent}-page"><div class="page-title ${accent}-accent">${label.toUpperCase()}</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="count-badge">${list.length} ${type==='survivor'?'survivant':'tueur'}${list.length!==1?'s':''} · ${list.reduce((a,c)=>a+c.skins.length,0)} skins</span>
+        <button class="btn btn-ghost btn-sm" onclick="toggleSelectMode('${type}')">☑ Sélectionner</button>
+      </div>
+    </div>
+    <div id="select-bar-container"></div>
+    <div id="roster-content">${renderRosterList(type)}</div>`;
+}
+function renderRosterList(type) {
+  const db=loadData();
+  const list = type==='survivor'?db.survivors:db.killers;
+  const accentVar = type==='survivor'?'var(--survivor)':'var(--killer)';
+  if(!list.length) return `<div class="empty-state"><div class="icon">${type==='survivor'?'🏃':'🔪'}</div><p>Aucun ${type==='survivor'?'survivant':'tueur'} pour l'instant.<br>Ajoute-en depuis <strong>➕ Ajouter</strong>.</p></div>`;
+  return list.map(c=>`
+    <div class="champion-section">
+      <div class="champion-header">
+        ${c.image?`<img src="${esc(c.image)}" class="champion-avatar" onerror="this.className='champion-avatar no-img';this.textContent='${type==='survivor'?'🏃':'🔪'}'">`:`<div class="champion-avatar no-img">${type==='survivor'?'🏃':'🔪'}</div>`}
+        <div>
+          <div class="champion-name">${esc(c.name)}</div>
+          <div class="champion-skin-count">${c.skins.length} skin${c.skins.length!==1?'s':''}</div>
+          ${c.weight&&c.weight!==5?`<div class="champion-weight-tag">🎲 Poids ×${c.weight}</div>`:''}
+        </div>
+        <div class="champion-actions">
+          <button class="btn btn-ghost btn-sm" onclick="openEditCharacter('${type}','${esc(c.id)}')">✏ Modifier</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCharacter('${type}','${esc(c.id)}')">🗑</button>
+        </div>
+      </div>
+      <div class="skins-grid">${c.skins.length===0?`<p style="color:var(--text-muted);font-size:.85rem;grid-column:1/-1">Aucun skin.</p>`:c.skins.map(s=>`
+        <div class="skin-card" data-id="${esc(s.id)}" onclick="skinCardClick(event,this,'${type}','${esc(c.id)}','${esc(s.id)}','${esc(s.image||'')}','${esc(s.name)}')">
+          <div class="rarity-bar" style="background:${accentVar};opacity:.6"></div>
+          <div class="skin-img-wrap">${s.image?`<img src="${esc(s.image)}" loading="lazy" onerror="this.style.display='none'">`:`<div class="no-img">${type==='survivor'?'🏃':'🔪'}</div>`}</div>
+          <div class="skin-info">
+            <div class="skin-name">${esc(s.name)}</div>
+            ${s.weight&&s.weight!==5?`<div class="skin-weight-tag">🎲 ×${s.weight}</div>`:''}
+          </div>
+          <div class="card-actions" onclick="event.stopPropagation()">
+            <button class="card-btn card-btn-edit" onclick="openEditSkin('${type}','${esc(c.id)}','${esc(s.id)}')">✏</button>
+            <button class="card-btn card-btn-delete" onclick="deleteSkinItem('${type}','${esc(c.id)}','${esc(s.id)}')">🗑</button>
+          </div>
+        </div>`).join('')}</div>
+    </div><hr class="section-divider">`).join('');
+}
+function skinCardClick(e, card, type, charId, skinId, image, name) {
+  _cardClick(card, ()=>{ if(image) openLightbox(image, name); });
+}
+
+// ── Ajout / suppression personnage ──
+function saveCharacter(e) {
+  e.preventDefault();
+  const type = document.getElementById('char-type').value;
+  const name = document.getElementById('char-name').value.trim();
+  const image = document.getElementById('char-img').value.trim();
+  const weight = getWeight('char-weight');
+  if(!type||!name) { showToast('Type et nom requis','error'); return; }
+  const db = loadData();
+  const list = type==='survivor'?db.survivors:db.killers;
+  list.unshift({id:generateId(type), name, image:image||null, weight, skins:[]});
+  saveData(db);
+  showToast((type==='survivor'?'Survivant':'Tueur')+' ajouté ✓');
+  addFormReset('char');
+}
+function deleteCharacter(type, id) {
+  if(!confirm('Supprimer ce personnage et tous ses skins ?')) return;
+  const db = loadData();
+  if(type==='survivor') db.survivors = db.survivors.filter(c=>c.id!==id);
+  else db.killers = db.killers.filter(c=>c.id!==id);
+  saveData(db); showToast('Personnage supprimé ✓'); refresh();
+}
+function openEditCharacter(type, id) {
+  const db = loadData();
+  const list = type==='survivor'?db.survivors:db.killers;
+  const c = list.find(x=>x.id===id);
+  if(!c) return;
+  openModal('Modifier : '+c.name, `
+    <form onsubmit="saveEditCharacter(event,'${type}','${esc(id)}')">
+      <div class="form-row">
+        <div class="form-group"><label>Type *</label>
+          <select id="edit-char-type" required>
+            <option value="survivor" ${type==='survivor'?'selected':''}>Survivant</option>
+            <option value="killer" ${type==='killer'?'selected':''}>Tueur</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Nom *</label><input type="text" id="edit-char-name" value="${esc(c.name)}" required></div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group"><label>URL image portrait</label>
+          <div class="img-url-wrap">
+            <input type="url" id="edit-char-img" value="${esc(c.image||'')}" placeholder="https://..." oninput="previewUrl('edit-char-img','edit-char-preview')">
+            <img id="edit-char-preview" class="img-url-preview ${c.image?'show':''}" src="${esc(c.image||'')}" alt="Aperçu">
+          </div>
+        </div>
+      </div>
+      ${weightWidget('edit-char-weight', c.weight||5)}
+      <div class="btn-row"><button type="submit" class="btn btn-primary">💾 Enregistrer</button><button type="button" class="btn btn-ghost" onclick="closeModal()">✕ Annuler</button></div>
+    </form>`);
+}
+function saveEditCharacter(e, oldType, id) {
+  e.preventDefault();
+  const newType = document.getElementById('edit-char-type').value;
+  const name = document.getElementById('edit-char-name').value.trim();
+  const image = document.getElementById('edit-char-img').value.trim();
+  const weight = getWeight('edit-char-weight');
+  if(!name) { showToast('Le nom est requis','error'); return; }
+  const db = loadData();
+  const oldList = oldType==='survivor'?db.survivors:db.killers;
+  const idx = oldList.findIndex(c=>c.id===id);
+  if(idx===-1) return;
+  const char = {...oldList[idx], name, image: image||null, weight};
+  oldList.splice(idx,1);
+  const newList = newType==='survivor'?db.survivors:db.killers;
+  newList.unshift(char);
+  saveData(db);
+  showToast('Personnage modifié ✓');
+  closeModal();
+  navigate(oldType==='survivor'?'survivors':'killers');
+}
+
+// ── Ajout / suppression skin ──
+function saveSkin(e) {
+  e.preventDefault();
+  const survId = document.getElementById('skin-surv').value;
+  const killId = document.getElementById('skin-kill').value;
+  const name = document.getElementById('skin-name').value.trim();
+  const image = document.getElementById('skin-img').value.trim();
+  const weight = getWeight('skin-weight');
+  if(!name||(!survId&&!killId)) { showToast('Choisis un personnage et un nom','error'); return; }
+  const db = loadData();
+  const type = survId?'survivor':'killer';
+  const list = survId?db.survivors:db.killers;
+  const char = list.find(c=>c.id===(survId||killId));
+  if(!char) return;
+  char.skins.unshift({id:generateId('sk'), name, image: image||null, weight});
+  saveData(db);
+  showToast('Skin ajouté ✓');
+  addFormReset('skin');
+}
+function deleteSkinItem(type, charId, skinId) {
+  if(!confirm('Supprimer ce skin ?')) return;
+  const db = loadData();
+  const list = type==='survivor'?db.survivors:db.killers;
+  const char = list.find(c=>c.id===charId);
+  if(char) char.skins = char.skins.filter(s=>s.id!==skinId);
+  saveData(db); showToast('Skin supprimé ✓'); refresh();
+}
+function openEditSkin(type, charId, skinId) {
+  const db = loadData();
+  const list = type==='survivor'?db.survivors:db.killers;
+  const char = list.find(c=>c.id===charId);
+  const s = char?.skins.find(x=>x.id===skinId);
+  if(!s) return;
+  const survOpts = db.survivors.map(c=>`<option value="${esc(c.id)}" ${type==='survivor'&&c.id===charId?'selected':''}>${esc(c.name)}</option>`).join('');
+  const killOpts = db.killers.map(c=>`<option value="${esc(c.id)}" ${type==='killer'&&c.id===charId?'selected':''}>${esc(c.name)}</option>`).join('');
+  openModal('Modifier : '+s.name, `
+    <form onsubmit="saveEditSkin(event,'${type}','${esc(charId)}','${esc(skinId)}')">
+      <div class="form-row">
+        <div class="form-group"><label>Survivant</label><select id="edit-skin-surv"><option value="">-- Survivant --</option>${survOpts}</select></div>
+        <div class="form-group"><label>Tueur</label><select id="edit-skin-kill"><option value="">-- Tueur --</option>${killOpts}</select></div>
+      </div>
+      <p style="color:var(--text-muted);font-size:.78rem;margin-bottom:12px">Choisis l'un OU l'autre pour réassigner le skin.</p>
+      <div class="form-row">
+        <div class="form-group"><label>Nom du skin *</label><input type="text" id="edit-skin-name" value="${esc(s.name)}" required></div>
+        <div class="form-group"><label>URL image</label>
+          <div class="img-url-wrap">
+            <input type="url" id="edit-skin-img" value="${esc(s.image||'')}" placeholder="https://..." oninput="previewUrl('edit-skin-img','edit-skin-preview')">
+            <img id="edit-skin-preview" class="img-url-preview ${s.image?'show':''}" src="${esc(s.image||'')}" alt="Aperçu">
+          </div>
+        </div>
+      </div>
+      ${weightWidget('edit-skin-weight', s.weight||5)}
+      <div class="btn-row"><button type="submit" class="btn btn-primary">💾 Enregistrer</button><button type="button" class="btn btn-ghost" onclick="closeModal()">✕ Annuler</button></div>
+    </form>`);
+}
+function saveEditSkin(e, oldType, oldCharId, skinId) {
+  e.preventDefault();
+  const survId = document.getElementById('edit-skin-surv').value;
+  const killId = document.getElementById('edit-skin-kill').value;
+  const name = document.getElementById('edit-skin-name').value.trim();
+  const image = document.getElementById('edit-skin-img').value.trim();
+  const weight = getWeight('edit-skin-weight');
+  if(!name||(!survId&&!killId)) { showToast('Choisis un personnage et un nom','error'); return; }
+  const db = loadData();
+  const oldList = oldType==='survivor'?db.survivors:db.killers;
+  const oldChar = oldList.find(c=>c.id===oldCharId);
+  if(!oldChar) return;
+  const idx = oldChar.skins.findIndex(s=>s.id===skinId);
+  if(idx===-1) return;
+  const skin = {...oldChar.skins[idx], name, image: image||null, weight};
+  oldChar.skins.splice(idx,1);
+  const newType = survId?'survivor':'killer';
+  const newList = newType==='survivor'?db.survivors:db.killers;
+  const newChar = newList.find(c=>c.id===(survId||killId));
+  if(!newChar) { showToast('Personnage introuvable','error'); return; }
+  newChar.skins.unshift(skin);
+  saveData(db);
+  showToast('Skin modifié ✓');
+  closeModal();
+  navigate(oldType==='survivor'?'survivors':'killers');
+}
+
+// ═══════════════════════════════════════════════════════
+//  AJOUTER — 2 formulaires strictement séparés
+// ═══════════════════════════════════════════════════════
+function renderAdd() {
+  const db = loadData();
+  const survOpts = db.survivors.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+  const killOpts = db.killers.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+  return `
+    <div class="page-header"><div class="page-title">➕ AJOUTER</div></div>
+    <div class="tabs">
+      <button type="button" class="tab active" id="add-tab-char" onclick="addTab('char')">+ Tueur / Survivant</button>
+      <button type="button" class="tab" id="add-tab-skin" onclick="addTab('skin')">+ Skin</button>
+    </div>
+
+    <div class="form-section" id="add-form-char">
+      <div class="form-section-title">🔪 Ajouter un Tueur ou un Survivant</div>
+      <form onsubmit="saveCharacter(event)">
+        <div class="form-row">
+          <div class="form-group"><label>Type *</label>
+            <select id="char-type" required>
+              <option value="">-- Type --</option>
+              <option value="survivor">Survivant</option>
+              <option value="killer">Tueur</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Nom *</label><input type="text" id="char-name" placeholder="ex: Meg Thomas" required></div>
+        </div>
+        <div class="form-row single">
+          <div class="form-group"><label>URL image portrait</label>
+            <div class="img-url-wrap">
+              <input type="url" id="char-img" placeholder="https://..." oninput="previewUrl('char-img','char-preview')">
+              <img id="char-preview" class="img-url-preview" alt="Aperçu">
+            </div>
+          </div>
+        </div>
+        ${weightWidget('char-weight', 5)}
+        <div class="btn-row"><button type="submit" class="btn btn-primary">💾 Enregistrer</button></div>
+      </form>
+    </div>
+
+    <div class="form-section" id="add-form-skin" style="display:none">
+      <div class="form-section-title">🎨 Ajouter un Skin</div>
+      <form onsubmit="saveSkin(event)">
+        <div class="form-row">
+          <div class="form-group"><label>Survivant</label><select id="skin-surv"><option value="">-- Survivant --</option>${survOpts}</select></div>
+          <div class="form-group"><label>Tueur</label><select id="skin-kill"><option value="">-- Tueur --</option>${killOpts}</select></div>
+        </div>
+        <p style="color:var(--text-muted);font-size:.8rem;margin-bottom:12px">Choisis l'un OU l'autre.</p>
+        <div class="form-row">
+          <div class="form-group"><label>Nom du skin *</label><input type="text" id="skin-name" placeholder="ex: Sporty Spice" required></div>
+          <div class="form-group"><label>URL image</label>
+            <div class="img-url-wrap">
+              <input type="url" id="skin-img" placeholder="https://..." oninput="previewUrl('skin-img','skin-preview')">
+              <img id="skin-preview" class="img-url-preview" alt="Aperçu">
+            </div>
+          </div>
+        </div>
+        ${weightWidget('skin-weight', 5)}
+        <div class="btn-row"><button type="submit" class="btn btn-primary">💾 Enregistrer</button></div>
+      </form>
+    </div>`;
+}
+function addTab(tab) {
+  document.getElementById('add-tab-char').classList.toggle('active', tab==='char');
+  document.getElementById('add-tab-skin').classList.toggle('active', tab==='skin');
+  document.getElementById('add-form-char').style.display = tab==='char'?'':'none';
+  document.getElementById('add-form-skin').style.display = tab==='skin'?'':'none';
+}
+function addFormReset(which) {
+  // Re-render the add page so both forms come back empty, keeping user on the same tab
+  document.getElementById('page-content').innerHTML = renderAdd();
+  if(which==='skin') addTab('skin');
+}
+
+// ═══════════════════════════════════════════════════════
+//  RANDOMIZER
+// ═══════════════════════════════════════════════════════
+let _randType = 'all'; // all | survivor | killer
+let _randMode = 'skin'; // skin | character
+
+function renderRandom() {
+  return `
+    <div class="rand-page">
+      <div class="page-header" style="position:relative">
+        <div><div class="page-title" style="background:linear-gradient(135deg,var(--killer),var(--survivor));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">RANDOMIZER</div><div style="color:var(--text-muted);font-size:.8rem;margin-top:4px;letter-spacing:.1em">CHOIX ALÉATOIRE</div></div>
+      </div>
+      <div class="rand-step">
+        <div class="rand-step-title">1. Que veux-tu tirer au sort ?</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="tab ${_randMode==='skin'?'active':''}" style="background:${_randMode==='skin'?'var(--bg5)':'transparent'}" onclick="randSetMode('skin')">🎨 Un skin</button>
+          <button class="tab ${_randMode==='character'?'active':''}" style="background:${_randMode==='character'?'var(--bg5)':'transparent'}" onclick="randSetMode('character')">👤 Un personnage</button>
+        </div>
+      </div>
+      <div class="rand-step">
+        <div class="rand-step-title">2. Filtrer par type</div>
+        <div class="filter-bar">
+          <button class="filter-btn active" data-rand="all" onclick="randFilter(this,'all')">Tous</button>
+          <button class="filter-btn" data-rand="survivor" onclick="randFilter(this,'survivor')">Survivant</button>
+          <button class="filter-btn" data-rand="killer" onclick="randFilter(this,'killer')">Tueur</button>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:center;margin:24px 0"><button class="rand-btn" onclick="doRandomize()">🎲 Randomizer !</button></div>
+      <div class="rand-results" id="rand-results"></div>
+    </div>`;
+}
+function randSetMode(mode) { _randMode = mode; document.getElementById('page-content').innerHTML = renderRandom(); }
+function randFilter(btn, type) {
+  _randType = type;
+  document.querySelectorAll('[data-rand]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function doRandomize() {
+  const db = loadData();
+  const btn = document.querySelector('.rand-btn');
+  if(btn) { btn.classList.add('spinning'); setTimeout(()=>btn.classList.remove('spinning'),600); }
+  const results = document.getElementById('rand-results');
+
+  if(_randMode==='character') {
+    let pool = [];
+    if(_randType!=='killer') pool.push(...db.survivors.map(c=>({char:c,type:'Survivant'})));
+    if(_randType!=='survivor') pool.push(...db.killers.map(c=>({char:c,type:'Tueur'})));
+    if(!pool.length){ showToast('Aucun personnage à tirer','error'); return; }
+    const picked = randWeighted(pool.map(p=>({...p, weight:p.char.weight||5})));
+    results.innerHTML = `
+      <div class="rand-result-card" onclick="openLightbox('${esc(picked.char.image||'')}','${esc(picked.char.name)}')" style="${picked.char.image?'cursor:zoom-in':''}">
+        ${picked.char.image?`<img src="${esc(picked.char.image)}" class="rand-result-img" loading="lazy">`:`<div class="rand-result-img no-img-big">${picked.type==='Survivant'?'🏃':'🔪'}</div>`}
+        <div class="rand-result-info">
+          <div class="rand-result-cat">${picked.type}</div>
+          <div class="rand-result-name">${esc(picked.char.name)}</div>
+        </div>
+      </div>`;
+  } else {
+    let pool = [];
+    if(_randType!=='killer') db.survivors.forEach(c=>c.skins.forEach(s=>pool.push({char:c, skin:s, type:'Survivant', weight:s.weight||5})));
+    if(_randType!=='survivor') db.killers.forEach(c=>c.skins.forEach(s=>pool.push({char:c, skin:s, type:'Tueur', weight:s.weight||5})));
+    if(!pool.length){ showToast('Aucun skin à tirer dans ce filtre','error'); return; }
+    const picked = randWeighted(pool);
+    results.innerHTML = `
+      <div class="rand-result-card" onclick="openLightbox('${esc(picked.skin.image||'')}','${esc(picked.skin.name)}')" style="${picked.skin.image?'cursor:zoom-in':''}">
+        ${picked.skin.image?`<img src="${esc(picked.skin.image)}" class="rand-result-img" loading="lazy">`:`<div class="rand-result-img no-img-big">${picked.type==='Survivant'?'🏃':'🔪'}</div>`}
+        <div class="rand-result-info">
+          <div class="rand-result-cat">${picked.type} · ${esc(picked.char.name)}</div>
+          <div class="rand-result-name">${esc(picked.skin.name)}</div>
+        </div>
+      </div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  MODE SÉLECTION MULTIPLE (suppression groupée des skins)
+// ═══════════════════════════════════════════════════════
+let _selectMode = false;
+let _selectedIds = new Set();
+let _selectContext = null; // { type: 'survivor'|'killer' }
+
+function toggleSelectMode(type) {
+  if(_selectMode) { _exitSelectMode(); return; }
+  _selectMode = true;
+  _selectedIds = new Set();
+  _selectContext = { type };
+  _injectSelectBar();
+  document.querySelectorAll('.skin-card[data-id]').forEach(c=>{
+    c.classList.add('selectable');
+    c.querySelectorAll('.card-actions').forEach(a=>a.style.display='none');
+  });
+}
+function _exitSelectMode(silent=false) {
+  _selectMode = false;
+  _selectedIds = new Set();
+  _selectContext = null;
+  const bar = document.getElementById('select-bar-container');
+  if(bar) bar.innerHTML = '';
+  if(!silent) refresh();
+}
+function _cardClick(el, defaultAction) {
+  if(_selectMode) {
+    const id = el.dataset.id;
+    if(_selectedIds.has(id)) { _selectedIds.delete(id); el.classList.remove('selected'); }
+    else { _selectedIds.add(id); el.classList.add('selected'); }
+    _updateSelectBar();
+  } else {
+    if(typeof defaultAction === 'function') defaultAction();
+  }
+}
+function _injectSelectBar() {
+  const bar = document.getElementById('select-bar-container');
+  if(!bar) return;
+  bar.innerHTML = `<div class="select-mode-bar">
+    <span style="font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;color:var(--text)" id="select-count">0 sélectionné</span>
+    <button class="btn btn-ghost btn-sm" onclick="selectAllSkins()">☑ Tout sélectionner</button>
+    <button class="btn btn-danger btn-sm" id="select-delete-btn" disabled style="opacity:.4" onclick="deleteSelectedSkins()">🗑 Supprimer la sélection</button>
+    <button class="btn btn-ghost btn-sm" onclick="_exitSelectMode()">✕ Annuler</button>
+  </div>`;
+}
+function _updateSelectBar() {
+  const countEl = document.getElementById('select-count');
+  if(countEl) countEl.textContent = `${_selectedIds.size} sélectionné${_selectedIds.size>1?'s':''}`;
+  const btn = document.getElementById('select-delete-btn');
+  if(btn) { btn.disabled = _selectedIds.size===0; btn.style.opacity = _selectedIds.size===0?'0.4':'1'; }
+}
+function selectAllSkins() {
+  document.querySelectorAll('.skin-card[data-id]').forEach(c=>{ _selectedIds.add(c.dataset.id); c.classList.add('selected'); });
+  _updateSelectBar();
+}
+function deleteSelectedSkins() {
+  const n = _selectedIds.size;
+  if(!n) return;
+  if(!confirm(`Supprimer ${n} skin${n>1?'s':''} ?`)) return;
+  const db = loadData();
+  const type = _selectContext?.type;
+  const list = type==='survivor'?db.survivors:db.killers;
+  list.forEach(c=>{ c.skins = c.skins.filter(s=>!_selectedIds.has(s.id)); });
+  saveData(db);
+  showToast(`${n} skin${n>1?'s':''} supprimé${n>1?'s':''} ✓`);
+  _exitSelectMode();
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+window.addEventListener('keydown', e => { if(e.key==='Escape'){ closeModal(); closeLightbox(); } });
+navigate('home');
+</script>
+</body>
+</html>
