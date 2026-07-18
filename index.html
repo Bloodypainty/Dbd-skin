@@ -32,12 +32,15 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .nav-item[data-page=survivors] .nav-dot{background:var(--survivor)}
 .nav-item[data-page=killers] .nav-dot{background:var(--killer)}
 .nav-item[data-page=random] .nav-dot{background:linear-gradient(135deg,var(--killer),var(--survivor))}
+.nav-item[data-page=pp] .nav-dot{background:var(--epic)}
 .nav-item.active{color:var(--text);background:var(--bg3)}
 .nav-item.active[data-page=survivors]{border-color:rgba(47,143,168,.25);background:linear-gradient(90deg,rgba(47,143,168,.08),transparent)}
 .nav-item.active[data-page=killers]{border-color:rgba(192,57,43,.25);background:linear-gradient(90deg,rgba(192,57,43,.08),transparent)}
 .nav-item.active[data-page=random]{border-color:rgba(155,48,255,.25);background:linear-gradient(90deg,rgba(155,48,255,.08),transparent)}
+.nav-item.active[data-page=pp]{border-color:rgba(155,48,255,.25);background:linear-gradient(90deg,rgba(155,48,255,.08),transparent)}
 .nav-item.active[data-page=survivors] .nav-dot{box-shadow:0 0 10px var(--survivor)}
 .nav-item.active[data-page=killers] .nav-dot{box-shadow:0 0 10px var(--killer)}
+.nav-item.active[data-page=pp] .nav-dot{box-shadow:0 0 10px var(--epic)}
 .sidebar-bottom{margin-top:auto;padding:14px 10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
 
 /* MAIN */
@@ -223,6 +226,7 @@ select option{background:var(--bg3)}
       <div class="nav-item" data-page="home" onclick="navigate('home')"><div class="nav-dot"></div>Accueil</div>
       <div class="nav-item" data-page="survivors" onclick="navigate('survivors')"><div class="nav-dot"></div>Survivants</div>
       <div class="nav-item" data-page="killers" onclick="navigate('killers')"><div class="nav-dot"></div>Tueurs</div>
+      <div class="nav-item" data-page="pp" onclick="navigate('pp')"><div class="nav-dot"></div>🖼️ Photos de profil</div>
     </nav>
     <div class="sidebar-section">Outils</div>
     <nav class="sidebar-nav">
@@ -258,7 +262,7 @@ select option{background:var(--bg3)}
 //  DATA
 // ═══════════════════════════════════════════════════════
 const DB_KEY = 'dbdvault_data';
-const DEFAULT_DATA = { survivors: [], killers: [] };
+const DEFAULT_DATA = { survivors: [], killers: [], profilePics: [] };
 
 function loadData() {
   try {
@@ -267,6 +271,7 @@ function loadData() {
     const saved = JSON.parse(raw);
     if(!saved.survivors) saved.survivors=[];
     if(!saved.killers) saved.killers=[];
+    if(!saved.profilePics) saved.profilePics=[];
     return saved;
   } catch(e) { return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
 }
@@ -309,6 +314,7 @@ function navigate(page) {
     case 'home':      c.innerHTML = renderHome(); break;
     case 'survivors': c.innerHTML = renderRoster('survivor'); break;
     case 'killers':   c.innerHTML = renderRoster('killer'); break;
+    case 'pp':        c.innerHTML = renderPP(); break;
     case 'random':    c.innerHTML = renderRandom(); break;
     case 'add':       c.innerHTML = renderAdd(); break;
     default: c.innerHTML='<p>404</p>';
@@ -413,6 +419,7 @@ function renderHome() {
       <div class="stat-block"><div class="stat-number">${total}</div><div class="stat-label">Skins total</div></div>
       <div class="stat-block"><div class="stat-number">${db.survivors.length}</div><div class="stat-label">Survivants</div></div>
       <div class="stat-block"><div class="stat-number">${db.killers.length}</div><div class="stat-label">Tueurs</div></div>
+      <div class="stat-block"><div class="stat-number">${db.profilePics.length}</div><div class="stat-label">Photos de profil</div></div>
     </div>
     <div class="home-grid">
       <div class="game-card survivor" onclick="navigate('survivors')">
@@ -424,6 +431,11 @@ function renderHome() {
         <div class="game-card-icon">🔪</div>
         <div class="game-card-name">Tueurs</div>
         <div class="game-card-count">${killSkins} skin${killSkins!==1?'s':''}</div>
+      </div>
+      <div class="game-card rand" onclick="navigate('pp')">
+        <div class="game-card-icon">🖼️</div>
+        <div class="game-card-name">Photos de profil</div>
+        <div class="game-card-count">${db.profilePics.length} pp</div>
       </div>
       <div class="game-card rand" onclick="navigate('random')">
         <div class="game-card-icon">🎲</div>
@@ -643,7 +655,98 @@ function saveEditSkin(e, oldType, oldCharId, skinId) {
 }
 
 // ═══════════════════════════════════════════════════════
-//  AJOUTER — 2 formulaires strictement séparés
+//  PHOTOS DE PROFIL (pp) — collection indépendante des skins
+// ═══════════════════════════════════════════════════════
+function renderPP() {
+  const db = loadData();
+  return `
+    <div class="page-header" style="border-bottom:1px solid var(--border)"><div class="page-title" style="color:var(--epic);text-shadow:0 0 40px rgba(155,48,255,.4)">PHOTOS DE PROFIL</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="count-badge">${db.profilePics.length} pp</span>
+        <button class="btn btn-ghost btn-sm" onclick="toggleSelectMode('pp')">☑ Sélectionner</button>
+        <button class="btn btn-primary btn-sm" onclick="navigate('add');addTab('pp')">➕ Ajouter</button>
+      </div>
+    </div>
+    <div id="select-bar-container"></div>
+    <div id="pp-content">${renderPPGrid()}</div>`;
+}
+function renderPPGrid() {
+  const db = loadData();
+  if(!db.profilePics.length) return `<div class="empty-state"><div class="icon">🖼️</div><p>Aucune photo de profil pour l'instant.<br>Ajoute-en depuis <strong>➕ Ajouter</strong>.</p></div>`;
+  return `<div class="skins-grid">${db.profilePics.map(p=>`
+    <div class="skin-card" data-id="${esc(p.id)}" onclick="ppCardClick(event,this,'${esc(p.id)}','${esc(p.image||'')}','${esc(p.name)}')">
+      <div class="rarity-bar" style="background:var(--epic);opacity:.6"></div>
+      <div class="skin-img-wrap">${p.image?`<img src="${esc(p.image)}" loading="lazy" onerror="this.style.display='none'">`:`<div class="no-img">🖼️</div>`}</div>
+      <div class="skin-info">
+        <div class="skin-name">${esc(p.name)}</div>
+        ${p.weight&&p.weight!==5?`<div class="skin-weight-tag">🎲 ×${p.weight}</div>`:''}
+      </div>
+      <div class="card-actions" onclick="event.stopPropagation()">
+        <button class="card-btn card-btn-edit" onclick="openEditPP('${esc(p.id)}')">✏</button>
+        <button class="card-btn card-btn-delete" onclick="deletePP('${esc(p.id)}')">🗑</button>
+      </div>
+    </div>`).join('')}</div>`;
+}
+function ppCardClick(e, card, id, image, name) {
+  _cardClick(card, ()=>{ if(image) openLightbox(image, name); });
+}
+function savePP(e) {
+  e.preventDefault();
+  const name = document.getElementById('pp-name').value.trim();
+  const image = document.getElementById('pp-img').value.trim();
+  const weight = getWeight('pp-weight');
+  if(!name) { showToast('Le nom est requis','error'); return; }
+  const db = loadData();
+  db.profilePics.unshift({id:generateId('pp'), name, image: image||null, weight});
+  saveData(db);
+  showToast('Photo de profil ajoutée ✓');
+  addFormReset('pp');
+}
+function deletePP(id) {
+  if(!confirm('Supprimer cette photo de profil ?')) return;
+  const db = loadData();
+  db.profilePics = db.profilePics.filter(p=>p.id!==id);
+  saveData(db); showToast('Photo de profil supprimée ✓'); refresh();
+}
+function openEditPP(id) {
+  const db = loadData();
+  const p = db.profilePics.find(x=>x.id===id);
+  if(!p) return;
+  openModal('Modifier : '+p.name, `
+    <form onsubmit="saveEditPP(event,'${esc(id)}')">
+      <div class="form-row single">
+        <div class="form-group"><label>Nom *</label><input type="text" id="edit-pp-name" value="${esc(p.name)}" required></div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group"><label>URL image</label>
+          <div class="img-url-wrap">
+            <input type="url" id="edit-pp-img" value="${esc(p.image||'')}" placeholder="https://..." oninput="previewUrl('edit-pp-img','edit-pp-preview')">
+            <img id="edit-pp-preview" class="img-url-preview ${p.image?'show':''}" src="${esc(p.image||'')}" alt="Aperçu">
+          </div>
+        </div>
+      </div>
+      ${weightWidget('edit-pp-weight', p.weight||5)}
+      <div class="btn-row"><button type="submit" class="btn btn-primary">💾 Enregistrer</button><button type="button" class="btn btn-ghost" onclick="closeModal()">✕ Annuler</button></div>
+    </form>`);
+}
+function saveEditPP(e, id) {
+  e.preventDefault();
+  const name = document.getElementById('edit-pp-name').value.trim();
+  const image = document.getElementById('edit-pp-img').value.trim();
+  const weight = getWeight('edit-pp-weight');
+  if(!name) { showToast('Le nom est requis','error'); return; }
+  const db = loadData();
+  const idx = db.profilePics.findIndex(p=>p.id===id);
+  if(idx===-1) return;
+  db.profilePics[idx] = {...db.profilePics[idx], name, image: image||null, weight};
+  saveData(db);
+  showToast('Photo de profil modifiée ✓');
+  closeModal();
+  navigate('pp');
+}
+
+// ═══════════════════════════════════════════════════════
+//  AJOUTER — 3 formulaires strictement séparés
 // ═══════════════════════════════════════════════════════
 function renderAdd() {
   const db = loadData();
@@ -654,6 +757,7 @@ function renderAdd() {
     <div class="tabs">
       <button type="button" class="tab active" id="add-tab-char" onclick="addTab('char')">+ Tueur / Survivant</button>
       <button type="button" class="tab" id="add-tab-skin" onclick="addTab('skin')">+ Skin</button>
+      <button type="button" class="tab" id="add-tab-pp" onclick="addTab('pp')">+ Photo de profil</button>
     </div>
 
     <div class="form-section" id="add-form-char">
@@ -702,18 +806,39 @@ function renderAdd() {
         ${weightWidget('skin-weight', 5)}
         <div class="btn-row"><button type="submit" class="btn btn-primary">💾 Enregistrer</button></div>
       </form>
+    </div>
+
+    <div class="form-section" id="add-form-pp" style="display:none">
+      <div class="form-section-title">🖼️ Ajouter une Photo de profil</div>
+      <form onsubmit="savePP(event)">
+        <div class="form-row single">
+          <div class="form-group"><label>Nom *</label><input type="text" id="pp-name" placeholder="ex: The Nightmare - Nightmare on Elm Street" required></div>
+        </div>
+        <div class="form-row single">
+          <div class="form-group"><label>URL image</label>
+            <div class="img-url-wrap">
+              <input type="url" id="pp-img" placeholder="https://..." oninput="previewUrl('pp-img','pp-preview')">
+              <img id="pp-preview" class="img-url-preview" alt="Aperçu">
+            </div>
+          </div>
+        </div>
+        ${weightWidget('pp-weight', 5)}
+        <div class="btn-row"><button type="submit" class="btn btn-primary">💾 Enregistrer</button></div>
+      </form>
     </div>`;
 }
 function addTab(tab) {
   document.getElementById('add-tab-char').classList.toggle('active', tab==='char');
   document.getElementById('add-tab-skin').classList.toggle('active', tab==='skin');
+  document.getElementById('add-tab-pp').classList.toggle('active', tab==='pp');
   document.getElementById('add-form-char').style.display = tab==='char'?'':'none';
   document.getElementById('add-form-skin').style.display = tab==='skin'?'':'none';
+  document.getElementById('add-form-pp').style.display = tab==='pp'?'':'none';
 }
 function addFormReset(which) {
-  // Re-render the add page so both forms come back empty, keeping user on the same tab
+  // Re-render the add page so all forms come back empty, keeping user on the same tab
   document.getElementById('page-content').innerHTML = renderAdd();
-  if(which==='skin') addTab('skin');
+  if(which!=='char') addTab(which);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -733,8 +858,10 @@ function renderRandom() {
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="tab ${_randMode==='skin'?'active':''}" style="background:${_randMode==='skin'?'var(--bg5)':'transparent'}" onclick="randSetMode('skin')">🎨 Un skin</button>
           <button class="tab ${_randMode==='character'?'active':''}" style="background:${_randMode==='character'?'var(--bg5)':'transparent'}" onclick="randSetMode('character')">👤 Un personnage</button>
+          <button class="tab ${_randMode==='pp'?'active':''}" style="background:${_randMode==='pp'?'var(--bg5)':'transparent'}" onclick="randSetMode('pp')">🖼️ Une photo de profil</button>
         </div>
       </div>
+      ${_randMode==='pp' ? '' : `
       <div class="rand-step">
         <div class="rand-step-title">2. Filtrer par type</div>
         <div class="filter-bar">
@@ -742,7 +869,7 @@ function renderRandom() {
           <button class="filter-btn" data-rand="survivor" onclick="randFilter(this,'survivor')">Survivant</button>
           <button class="filter-btn" data-rand="killer" onclick="randFilter(this,'killer')">Tueur</button>
         </div>
-      </div>
+      </div>`}
       <div style="display:flex;justify-content:center;margin:24px 0"><button class="rand-btn" onclick="doRandomize()">🎲 Randomizer !</button></div>
       <div class="rand-results" id="rand-results"></div>
     </div>`;
@@ -758,6 +885,21 @@ function doRandomize() {
   const btn = document.querySelector('.rand-btn');
   if(btn) { btn.classList.add('spinning'); setTimeout(()=>btn.classList.remove('spinning'),600); }
   const results = document.getElementById('rand-results');
+
+  if(_randMode==='pp') {
+    const pool = db.profilePics;
+    if(!pool.length){ showToast('Aucune photo de profil à tirer','error'); return; }
+    const picked = randWeighted(pool);
+    results.innerHTML = `
+      <div class="rand-result-card" onclick="openLightbox('${esc(picked.image||'')}','${esc(picked.name)}')" style="${picked.image?'cursor:zoom-in':''}">
+        ${picked.image?`<img src="${esc(picked.image)}" class="rand-result-img" loading="lazy">`:`<div class="rand-result-img no-img-big">🖼️</div>`}
+        <div class="rand-result-info">
+          <div class="rand-result-cat">Photo de profil</div>
+          <div class="rand-result-name">${esc(picked.name)}</div>
+        </div>
+      </div>`;
+    return;
+  }
 
   if(_randMode==='character') {
     let pool = [];
@@ -852,10 +994,14 @@ function deleteSelectedSkins() {
   if(!confirm(`Supprimer ${n} skin${n>1?'s':''} ?`)) return;
   const db = loadData();
   const type = _selectContext?.type;
-  const list = type==='survivor'?db.survivors:db.killers;
-  list.forEach(c=>{ c.skins = c.skins.filter(s=>!_selectedIds.has(s.id)); });
+  if(type==='pp') {
+    db.profilePics = db.profilePics.filter(p=>!_selectedIds.has(p.id));
+  } else {
+    const list = type==='survivor'?db.survivors:db.killers;
+    list.forEach(c=>{ c.skins = c.skins.filter(s=>!_selectedIds.has(s.id)); });
+  }
   saveData(db);
-  showToast(`${n} skin${n>1?'s':''} supprimé${n>1?'s':''} ✓`);
+  showToast(`${n} élément${n>1?'s':''} supprimé${n>1?'s':''} ✓`);
   _exitSelectMode();
 }
 
