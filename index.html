@@ -184,8 +184,9 @@ select option{background:var(--bg3)}
 .rand-step-title{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.07em;color:var(--text-dim);margin-bottom:14px}
 .rand-btn{font-size:1.05rem;padding:14px 34px;border-radius:var(--rl);background:linear-gradient(135deg,rgba(192,57,43,.25),rgba(47,143,168,.2));border:1px solid rgba(192,57,43,.4);color:#fff;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:.08em;cursor:pointer;transition:.25s;display:flex;align-items:center;gap:10px}
 .rand-btn:hover{box-shadow:0 8px 30px rgba(192,57,43,.25)}
-@keyframes spinBounce{0%{transform:scale(1) rotate(0)}40%{transform:scale(1.15) rotate(180deg)}100%{transform:scale(1) rotate(360deg)}}
-.rand-btn.spinning{animation:spinBounce .6s ease}
+/* Animation minimale : léger pulse, sans rotation */
+@keyframes spinBounce{0%{transform:scale(1);opacity:1}50%{transform:scale(.95);opacity:.65}100%{transform:scale(1);opacity:1}}
+.rand-btn.spinning{animation:spinBounce .4s ease}
 .rand-results{margin-top:10px}
 .rand-result-card{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rx);overflow:hidden;position:relative;transition:.25s;max-width:280px}
 .rand-result-img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;background:var(--bg3)}
