@@ -882,7 +882,7 @@ function renderRandom() {
         <div class="rand-step-title">1. Que veux-tu tirer au sort ?</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="tab ${_randMode==='skin'?'active':''}" style="background:${_randMode==='skin'?'var(--bg5)':'transparent'}" onclick="randSetMode('skin')">🎨 Un skin</button>
-          <button class="tab ${_randMode==='character'?'active':''}" style="background:${_randMode==='character'?'var(--bg5)':'transparent'}" onclick="randSetMode('character')">👤 Un personnage</button>
+          <button class="tab ${_randMode==='character'?'active':''}" style="background:${_randMode==='character'?'var(--bg5)':'transparent'}" onclick="randSetMode('character')">👤 Un personnage + son skin</button>
           <button class="tab ${_randMode==='pp'?'active':''}" style="background:${_randMode==='pp'?'var(--bg5)':'transparent'}" onclick="randSetMode('pp')">🖼️ Une photo de profil</button>
         </div>
       </div>
@@ -932,12 +932,17 @@ function doRandomize() {
     if(_randType!=='survivor') pool.push(...db.killers.map(c=>({char:c,type:'Tueur'})));
     if(!pool.length){ showToast('Aucun personnage à tirer','error'); return; }
     const picked = randWeighted(pool.map(p=>({...p, weight:p.char.weight||5})));
+    const skinPool = picked.char.skins||[];
+    const pickedSkin = skinPool.length ? randWeighted(skinPool) : null;
+    const img = pickedSkin?.image || picked.char.image || '';
+    const displayName = pickedSkin ? `${picked.char.name} — ${pickedSkin.name}` : picked.char.name;
     results.innerHTML = `
-      <div class="rand-result-card" onclick="openLightbox('${esc(picked.char.image||'')}','${esc(picked.char.name)}')" style="${picked.char.image?'cursor:zoom-in':''}">
-        ${picked.char.image?`<img src="${esc(picked.char.image)}" class="rand-result-img" loading="lazy">`:`<div class="rand-result-img no-img-big">${picked.type==='Survivant'?'🏃':'🔪'}</div>`}
+      <div class="rand-result-card" onclick="openLightbox('${esc(img)}','${esc(displayName)}')" style="${img?'cursor:zoom-in':''}">
+        ${img?`<img src="${esc(img)}" class="rand-result-img" loading="lazy">`:`<div class="rand-result-img no-img-big">${picked.type==='Survivant'?'🏃':'🔪'}</div>`}
         <div class="rand-result-info">
-          <div class="rand-result-cat">${picked.type}</div>
-          <div class="rand-result-name">${esc(picked.char.name)}</div>
+          <div class="rand-result-cat">${picked.type} · ${esc(picked.char.name)}</div>
+          <div class="rand-result-name">${pickedSkin?esc(pickedSkin.name):'Skin de base'}</div>
+          ${!pickedSkin?`<div style="font-size:.7rem;color:var(--text-muted);margin-top:4px">Aucun skin enregistré pour ce personnage</div>`:''}
         </div>
       </div>`;
   } else {
