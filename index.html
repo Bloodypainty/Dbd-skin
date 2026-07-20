@@ -486,6 +486,8 @@ function renderRosterList(type) {
           ${c.weight&&c.weight!==5?`<div class="champion-weight-tag">🎲 Poids ×${c.weight}</div>`:''}
         </div>
         <div class="champion-actions">
+          <button class="btn btn-ghost btn-sm" onclick="moveCharacter('${type}','${esc(c.id)}',-1)" title="Monter">▲</button>
+          <button class="btn btn-ghost btn-sm" onclick="moveCharacter('${type}','${esc(c.id)}',1)" title="Descendre">▼</button>
           <button class="btn btn-ghost btn-sm" onclick="openEditCharacter('${type}','${esc(c.id)}')">✏ Modifier</button>
           <button class="btn btn-danger btn-sm" onclick="deleteCharacter('${type}','${esc(c.id)}')">🗑</button>
         </div>
@@ -533,6 +535,15 @@ function deleteCharacter(type, id) {
   if(type==='survivor') db.survivors = db.survivors.filter(c=>c.id!==id);
   else db.killers = db.killers.filter(c=>c.id!==id);
   saveData(db); showToast('Personnage supprimé ✓'); refresh();
+}
+function moveCharacter(type, id, dir) {
+  const db = loadData();
+  const list = type==='survivor'?db.survivors:db.killers;
+  const idx = list.findIndex(c=>c.id===id);
+  const newIdx = idx+dir;
+  if(idx===-1||newIdx<0||newIdx>=list.length) return;
+  [list[idx], list[newIdx]] = [list[newIdx], list[idx]];
+  saveData(db); refresh();
 }
 function openEditCharacter(type, id) {
   const db = loadData();
