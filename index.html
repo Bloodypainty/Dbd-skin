@@ -59,6 +59,7 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .skin-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;cursor:pointer;transition:transform .25s,box-shadow .25s,border-color .25s;position:relative}
 .skin-card:hover{transform:translateY(-5px)}
 .skin-card:hover{box-shadow:0 12px 34px rgba(0,0,0,.4)}
+.skin-rarity-label{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;margin-top:3px}
 .skin-img-wrap{aspect-ratio:3/4;overflow:hidden;background:linear-gradient(135deg,var(--bg3),var(--bg4));position:relative}
 .skin-img-wrap img{width:100%;height:100%;object-fit:cover;transition:transform .5s;display:block}
 .skin-card:hover .skin-img-wrap img{transform:scale(1.07)}
@@ -264,6 +265,11 @@ select option{background:var(--bg3)}
 //  DATA
 // ═══════════════════════════════════════════════════════
 const DB_KEY = 'dbdvault_data';
+const RARITIES = ['Commun','Insolite','Rare','Très Rare','Légendaire','Viscéral','Transcendé'];
+const RARITY_COLORS = {
+  'Commun':'#c0524a', 'Insolite':'#4caf50', 'Rare':'#4a9eff', 'Très Rare':'#b39ddb',
+  'Légendaire':'#f0c419', 'Viscéral':'#e63946', 'Transcendé':'#f2f2f2'
+};
 const DEFAULT_DATA = { survivors: [], killers: [], profilePics: [] };
 
 function loadData() {
@@ -485,11 +491,12 @@ function renderRosterList(type) {
         </div>
       </div>
       <div class="skins-grid">${c.skins.length===0?`<p style="color:var(--text-muted);font-size:.85rem;grid-column:1/-1">Aucun skin.</p>`:c.skins.map(s=>`
-        <div class="skin-card" data-id="${esc(s.id)}" onclick="skinCardClick(event,this,'${type}','${esc(c.id)}','${esc(s.id)}','${esc(s.image||'')}','${esc(s.name)}')">
-          <div class="rarity-bar" style="background:${accentVar};opacity:.6"></div>
+        <div class="skin-card" data-id="${esc(s.id)}" style="${s.rarity&&RARITY_COLORS[s.rarity]?`border:2px solid ${RARITY_COLORS[s.rarity]}aa;box-shadow:0 0 14px 0 ${RARITY_COLORS[s.rarity]}33`:''}" onclick="skinCardClick(event,this,'${type}','${esc(c.id)}','${esc(s.id)}','${esc(s.image||'')}','${esc(s.name)}')">
+          <div class="rarity-bar" style="background:${s.rarity&&RARITY_COLORS[s.rarity]?RARITY_COLORS[s.rarity]:accentVar};opacity:.8"></div>
           <div class="skin-img-wrap">${s.image?`<img src="${esc(s.image)}" loading="lazy" onerror="this.style.display='none'">`:`<div class="no-img">${type==='survivor'?'🏃':'🔪'}</div>`}</div>
           <div class="skin-info">
             <div class="skin-name">${esc(s.name)}</div>
+            ${s.rarity?`<div class="skin-rarity-label" style="color:${RARITY_COLORS[s.rarity]||'var(--text-muted)'}">${esc(s.rarity)}</div>`:''}
             ${s.weight&&s.weight!==5?`<div class="skin-weight-tag">🎲 ×${s.weight}</div>`:''}
           </div>
           <div class="card-actions" onclick="event.stopPropagation()">
@@ -582,6 +589,7 @@ function saveSkin(e) {
   const survId = document.getElementById('skin-surv').value;
   const killId = document.getElementById('skin-kill').value;
   const name = document.getElementById('skin-name').value.trim();
+  const rarity = document.getElementById('skin-rarity').value;
   const image = document.getElementById('skin-img').value.trim();
   const weight = getWeight('skin-weight');
   if(!name||(!survId&&!killId)) { showToast('Choisis un personnage et un nom','error'); return; }
@@ -590,7 +598,7 @@ function saveSkin(e) {
   const list = survId?db.survivors:db.killers;
   const char = list.find(c=>c.id===(survId||killId));
   if(!char) return;
-  char.skins.unshift({id:generateId('sk'), name, image: image||null, weight});
+  char.skins.unshift({id:generateId('sk'), name, rarity: rarity||null, image: image||null, weight});
   saveData(db);
   showToast('Skin ajouté ✓');
   addFormReset('skin');
@@ -631,6 +639,14 @@ function openEditSkin(type, charId, skinId) {
       <p style="color:var(--text-muted);font-size:.78rem;margin-bottom:12px">Choisis l'un OU l'autre pour réassigner le skin.</p>
       <div class="form-row">
         <div class="form-group"><label>Nom du skin *</label><input type="text" id="edit-skin-name" value="${esc(s.name)}" required></div>
+        <div class="form-group"><label>Rareté</label>
+          <select id="edit-skin-rarity">
+            <option value="">-- Rareté --</option>
+            ${RARITIES.map(r=>`<option value="${r}" ${s.rarity===r?'selected':''}>${r}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="form-row single">
         <div class="form-group"><label>URL image</label>
           <div class="img-url-wrap">
             <input type="url" id="edit-skin-img" value="${esc(s.image||'')}" placeholder="https://..." oninput="previewUrl('edit-skin-img','edit-skin-preview')">
@@ -647,6 +663,7 @@ function saveEditSkin(e, oldType, oldCharId, skinId) {
   const survId = document.getElementById('edit-skin-surv').value;
   const killId = document.getElementById('edit-skin-kill').value;
   const name = document.getElementById('edit-skin-name').value.trim();
+  const rarity = document.getElementById('edit-skin-rarity').value;
   const image = document.getElementById('edit-skin-img').value.trim();
   const weight = getWeight('edit-skin-weight');
   if(!name||(!survId&&!killId)) { showToast('Choisis un personnage et un nom','error'); return; }
@@ -656,7 +673,7 @@ function saveEditSkin(e, oldType, oldCharId, skinId) {
   if(!oldChar) return;
   const idx = oldChar.skins.findIndex(s=>s.id===skinId);
   if(idx===-1) return;
-  const skin = {...oldChar.skins[idx], name, image: image||null, weight};
+  const skin = {...oldChar.skins[idx], name, rarity: rarity||null, image: image||null, weight};
   oldChar.skins.splice(idx,1);
   const newType = survId?'survivor':'killer';
   const newList = newType==='survivor'?db.survivors:db.killers;
@@ -821,6 +838,14 @@ function renderAdd() {
         <p style="color:var(--text-muted);font-size:.8rem;margin-bottom:12px">Choisis l'un OU l'autre.</p>
         <div class="form-row">
           <div class="form-group"><label>Nom du skin *</label><input type="text" id="skin-name" placeholder="ex: Sporty Spice" required></div>
+          <div class="form-group"><label>Rareté</label>
+            <select id="skin-rarity">
+              <option value="">-- Rareté --</option>
+              ${RARITIES.map(r=>`<option value="${r}">${r}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="form-row single">
           <div class="form-group"><label>URL image</label>
             <div class="img-url-wrap">
               <input type="url" id="skin-img" placeholder="https://..." oninput="previewUrl('skin-img','skin-preview')">
@@ -952,11 +977,12 @@ function doRandomize() {
     if(!pool.length){ showToast('Aucun skin à tirer dans ce filtre','error'); return; }
     const picked = randWeighted(pool);
     results.innerHTML = `
-      <div class="rand-result-card" onclick="openLightbox('${esc(picked.skin.image||'')}','${esc(picked.skin.name)}')" style="${picked.skin.image?'cursor:zoom-in':''}">
+      <div class="rand-result-card" onclick="openLightbox('${esc(picked.skin.image||'')}','${esc(picked.skin.name)}')" style="${picked.skin.image?'cursor:zoom-in':''}${picked.skin.rarity&&RARITY_COLORS[picked.skin.rarity]?`border:2px solid ${RARITY_COLORS[picked.skin.rarity]}aa;`:''}">
         ${picked.skin.image?`<img src="${esc(picked.skin.image)}" class="rand-result-img" loading="lazy">`:`<div class="rand-result-img no-img-big">${picked.type==='Survivant'?'🏃':'🔪'}</div>`}
         <div class="rand-result-info">
           <div class="rand-result-cat">${picked.type} · ${esc(picked.char.name)}</div>
           <div class="rand-result-name">${esc(picked.skin.name)}</div>
+          ${picked.skin.rarity?`<div class="skin-rarity-label" style="color:${RARITY_COLORS[picked.skin.rarity]||'var(--text-muted)'};margin-top:4px">${esc(picked.skin.rarity)}</div>`:''}
         </div>
       </div>`;
   }
